@@ -10,8 +10,9 @@ This is a local, CPU-first ML infrastructure portfolio project. It uses public d
 
 ## Start here
 
+- [Open the interactive evidence desk](https://eluxsana.github.io/RunLedger/)
 - [Measured results and methodology](docs/EXPERIMENTS.md)
-- [Real-model evidence dashboard](artifacts/reproduction/model/sum/index.html) — open the HTML file in a browser
+- [Real-model evidence dashboard](https://eluxsana.github.io/RunLedger/artifacts/reproduction/model/sum/index.html)
 - [Recovery evidence](artifacts/reproduction/failures/study.json)
 - [Architecture and invariants](docs/ARCHITECTURE.md)
 - [Scoring protocol](docs/SCORING.md)
