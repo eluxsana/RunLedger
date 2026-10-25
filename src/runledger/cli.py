@@ -222,9 +222,14 @@ def verify_export_command(path: Path):
 
 @app.command()
 @guarded
-def compare(left: Path, right: Path):
-    """Compare aligned samples with digest equality and a paired accuracy interval."""
-    emit(compare_exports(left, right))
+def compare(left: Path, right: Path, report: Path | None = None):
+    """Compare aligned samples; optionally write an offline prediction-drift report."""
+    comparison = compare_exports(left, right)
+    if report is not None:
+        from runledger.comparison import render_comparison
+
+        render_comparison(comparison, report)
+    emit(comparison)
 
 
 @app.command()

@@ -235,5 +235,19 @@ def compare_exports(
         "bootstrap_samples": bootstrap_samples,
         "seed": seed,
         "same_scoring_configuration": a["spec"]["scorer"] == b["spec"]["scorer"],
+        "prediction_changes": sum(
+            x["prediction"] != y["prediction"] for x, y in zip(rows_a, rows_b, strict=True)
+        ),
+        "changed_samples": [
+            {
+                "sample_id": x["sample_id"],
+                "target": x["target"],
+                "left_prediction": x["prediction"],
+                "right_prediction": y["prediction"],
+                "outcome": "improved" if delta == 1 else "regressed" if delta == -1 else "changed",
+            }
+            for x, y, delta in zip(rows_a, rows_b, differences, strict=True)
+            if x["prediction"] != y["prediction"]
+        ],
         "interpretation": "Paired descriptive comparison on this fixed subset; no multiple-testing correction or population guarantee.",
     }

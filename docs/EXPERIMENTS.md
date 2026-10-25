@@ -1,6 +1,6 @@
 # Measured experiments and validation
 
-Recorded on 2026-09-14 UTC using macOS arm64, 10 logical CPUs and 24 GiB RAM. The evaluation runtime is recorded in every export. All seven evidence bundles match package source fingerprint `ad7f0d5b210abde4e1eb2029c8c60f38c586165070305f030f02b228494d507a`.
+Regenerated on 2026-10-25 UTC using macOS arm64, 10 logical CPUs and 24 GiB RAM. The evaluation runtime is recorded in every export. All seven evidence bundles match package source fingerprint `31fd9d4cae2a60050f7f94769db66a79789b16d85186012664eed78341b5f97e`.
 
 These are measurements from one local machine. Timing ranges are observed min–max, not confidence intervals, and no claim is made about cold storage, GPU performance or a distributed cluster.
 
@@ -29,9 +29,9 @@ SmolLM2-135M, CPU float32, one worker, two PyTorch threads, choice mini-batches 
 
 | Case | Correct / total | Accuracy | Wilson 95% interval | Execution time |
 |---|---:|---:|---:|---:|
-| sum | 80 / 128 | 62.50% | 53.9%–70.4% | 12.04 s |
-| sum-recovery | 80 / 128 | 62.50% | 53.9%–70.4% | 14.57 s |
-| mean | 72 / 128 | 56.25% | 47.6%–64.5% | 12.14 s |
+| sum | 80 / 128 | 62.50% | 53.9%–70.4% | 9.57 s |
+| sum-recovery | 80 / 128 | 62.50% | 53.9%–70.4% | 11.16 s |
+| mean | 72 / 128 | 56.25% | 47.6%–64.5% | 8.55 s |
 
 The sum-recovery run killed its model worker during its first commit. Its **complete ordered scores, predictions and token counts match the uninterrupted sum run byte-for-byte under canonical serialization**. No committed samples are missing or duplicated. [Model study and paired comparisons](../artifacts/reproduction/model/study.json).
 
@@ -39,20 +39,30 @@ Mean scoring improved 16 previously wrong answers and regressed 24 previously co
 
 Execution timing includes worker/model startup, scoring, retries, waiting for lease recovery and worker cleanup. It excludes downloads and preflight dataset verification. The convenience subset, prompt and normalization differ from a standardized full benchmark; these are not leaderboard-comparable results.
 
+## Prediction-drift explorer
+
+The new `compare --report` command joins the same verified examples and shows every prediction flip, including wrong-to-wrong changes. On the sum-to-mean scoring comparison there are **45 changed predictions**: 16 improved, 24 regressed, and 5 changed between two wrong choices. The model weights and examples are unchanged; this is scoring-policy sensitivity, not a comparison of two model revisions.
+
+```sh
+runledger compare artifacts/reproduction/model/sum artifacts/reproduction/model/mean --report /tmp/drift.html
+```
+
+Open the resulting HTML file locally. Search sample IDs or filter outcomes; the report makes no network requests. [Screenshot](../artifacts/drift.png). Raw prompt text is not embedded. The bootstrap interval is descriptive for this fixed subset and includes zero.
+
 ## 3. Loading tradeoffs
 
 100,000 synthetic records, 80 words per prompt, four choices, batch size 256 and five measured repetitions per method. Every method validates and hashes exactly the same normalized records in the same order. Each trial starts in a fresh Python process after one unmeasured warm-up per method; measurement order is shuffled with seed 17.
 
 | Method | Peak RSS, MiB: median (range) | First 256 records, ms: median (range) | Full scan, s: median (range) |
 |---|---:|---:|---:|
-| jsonl-materialized | 270.3 (270.3–270.4) | 203.48 (202.18–217.04) | 1.058 (1.029–1.076) |
-| jsonl-streaming | 58.4 (58.3–58.5) | 2.77 (2.70–3.11) | 1.007 (0.966–1.049) |
-| parquet-materialized | 360.2 (358.6–361.3) | 312.65 (297.26–323.59) | 1.198 (1.194–1.236) |
-| parquet-streaming | 71.7 (71.5–72.7) | 3.99 (3.89–4.24) | 1.205 (1.154–1.220) |
+| jsonl-materialized | 270.5 (270.4–270.6) | 198.63 (193.29–208.55) | 1.007 (0.988–1.049) |
+| jsonl-streaming | 58.5 (58.5–58.5) | 2.67 (2.52–2.71) | 0.974 (0.951–1.012) |
+| parquet-materialized | 359.6 (356.9–361.6) | 317.97 (307.53–374.20) | 1.242 (1.186–1.249) |
+| parquet-streaming | 72.8 (71.9–73.6) | 3.93 (3.82–4.01) | 1.200 (1.177–1.217) |
 
 ![Loading benchmark medians and ranges](../artifacts/loading.png)
 
-On this workload, Parquet streaming used **73.5% less peak process memory** than materialized JSONL and delivered the first validated batch **51.0× sooner**. Its complete validated scan was **13.9% slower**. The streaming JSONL baseline used even less memory (58.4 MiB) and completed the scan fastest (1.007 s median). The dominant memory benefit comes from streaming rather than the file format alone.
+On this workload, Parquet streaming used **73.1% less peak process memory** than materialized JSONL and delivered the first validated batch **50.5× sooner**. Its complete validated scan was **19.2% slower**. The streaming JSONL baseline used even less memory (58.5 MiB) and completed the scan fastest (0.974 s median). The dominant memory benefit comes from streaming rather than the file format alone.
 
 Input sizes were 90.2 MiB for JSONL and 21.5 MiB for Parquet. RSS includes the interpreter and libraries; the raw trials also record the import-time high-water baseline. Timings start after shared imports and exclude data generation, downloads and cryptographic shard verification. End-to-end evaluation deliberately rechecks shard integrity, so these loader timings are not evaluator timings.
 
@@ -66,13 +76,13 @@ uv run --locked --script scripts/plot_loading.py artifacts/reproduction/loading.
 
 ## Validation record
 
-- **70 tests passed**, including actual process crashes, timeout/resume, four-process claims, stale-token fencing, schema/integrity failures, report escaping, artifact verification and real-model numerical tests.
-- **87.74% statement coverage** (1159/1321 statements), with multiprocessing/subprocess coverage enabled. Killed processes may not flush coverage. Coverage is supporting evidence, not a proof of correctness.
+- **74 tests passed**, including actual process crashes, timeout/resume, four-process claims, stale-token fencing, schema/integrity failures, report escaping, artifact verification and real-model numerical tests.
+- The initial release recorded 87.74% statement coverage. Coverage has not been recomputed for the prediction-drift addition; the current test count is from an actual full local run.
 - Ruff checks and formatting passed; both sdist and wheel build successfully.
 - A fresh virtual environment installed core dependencies from the lock and the wheel with no editable source install and no PyTorch. From outside the repository, Python isolated mode ran the 384-record crash demo with Hugging Face offline flags and verified the exported evidence.
 - All seven final exports were reverified: file checksums, run-spec fingerprints, metrics, logical result digests and source identity.
 - Browser verification covered desktop layout, sample search, correctness filtering, pagination and a 390 px layout check. No page-level horizontal overflow or JavaScript console errors were observed in the tested views.
-- GitHub Actions is configured for macOS/Linux and Python 3.12/3.13. **Remote CI has not been executed** because this repository has not been published. No Docker, multi-host, GPU, paid-cloud or power-loss test is claimed.
+- GitHub Actions is configured for macOS/Linux and Python 3.12/3.13. The published initial-release workflow passed. The prediction-drift addition is tested locally; check the Actions tab for its current remote result. No Docker, multi-host, GPU, paid-cloud or power-loss test is claimed.
 
 Recheck committed evidence without running a model:
 

@@ -19,7 +19,7 @@ This is a local, CPU-first ML infrastructure portfolio project. It uses public d
 
 ## Recorded results
 
-70 passing tests; exact recovery after worker crashes at three commit boundaries; a real 128-sample LLM recovery comparison; and a four-way, 100,000-record loading study. Streaming JSONL had the lowest memory and scan time; Parquet used 4.19× less storage. [Read the raw evidence and limitations](docs/EXPERIMENTS.md).
+74 passing tests; exact recovery after worker crashes at three commit boundaries; a real 128-sample LLM recovery comparison; and a four-way, 100,000-record loading study. Streaming JSONL had the lowest memory and scan time; Parquet used 4.19× less storage. [Read the raw evidence and limitations](docs/EXPERIMENTS.md).
 
 ![Measured loading tradeoffs](artifacts/loading.png)
 
@@ -128,3 +128,15 @@ The core dependency lock and optional model dependencies are in `uv.lock`. A cle
 ## License and acknowledgments
 
 RunLedger code and handwritten/synthetic fixtures are [MIT licensed](LICENSE). Model weights retain their [Apache-2.0 license](https://huggingface.co/HuggingFaceTB/SmolLM2-135M). AI2 ARC retains [CC-BY-SA-4.0 attribution and license terms](https://huggingface.co/datasets/allenai/ai2_arc); downloaded questions and weights are excluded from the source repository. See [THIRD_PARTY.md](THIRD_PARTY.md) for the pinned sources and the established tools this project builds on.
+
+## Inspect prediction drift
+
+A headline score can hide changed answers. Compare two verified exports and inspect improved, regressed, and wrong-to-wrong predictions in a standalone report:
+
+```sh
+runledger compare artifacts/reproduction/model/sum artifacts/reproduction/model/mean --report /tmp/drift.html
+```
+
+![Prediction-drift report](artifacts/drift.png)
+
+The included example changes the scoring normalization on the same model and dataset. It is not evidence that one model version beats another. [Methodology and limits](docs/EXPERIMENTS.md#prediction-drift-explorer).
