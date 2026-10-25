@@ -1,0 +1,2 @@
+# Checked-in experiment reports are generated output, not application source.
+artifacts/** linguist-generated=true
