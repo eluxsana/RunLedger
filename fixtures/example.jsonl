@@ -1,0 +1,2 @@
+{"sample_id":"example-001","prompt":"Which number is even?","choices":["three","four","five"],"target":1,"split":"test","metadata":{"kind":"handwritten-example"}}
+{"sample_id":"example-002","prompt":"Which is a programming language?","choices":["Python","granite","oxygen"],"target":0,"split":"test","metadata":{"kind":"handwritten-example"}}

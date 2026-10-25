@@ -1,0 +1,34 @@
+name: Checks
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  core:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python: ['3.12', '3.13']
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: '0.12.13'
+          python-version: ${{ matrix.python }}
+          enable-cache: true
+      - run: uv sync --locked
+      - run: uv run --locked ruff check src tests scripts
+      - run: uv run --locked ruff format --check src tests scripts
+      - run: uv run --locked pytest -q
+      - run: uv run --locked python scripts/check_artifacts.py
+      - run: uv build
+      - run: uv run --locked runledger demo --output artifacts/ci-demo
+      - run: uv run --locked runledger verify-export artifacts/ci-demo
